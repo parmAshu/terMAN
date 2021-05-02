@@ -4,6 +4,7 @@ This module contains utility functions for performing serial port related tasks
 
 __author__ = "ASHUTOSH SINGH PARMAR"
 
+from datetime import datetime
 import serial
 import serial.tools.list_ports
 import time
@@ -63,10 +64,10 @@ def SERIAL_PARITY(parity):
     else:
         return 'N'
 
-run_serial_thread = 0
-def appThread1(app):
+run_serial_thread0 = 0
+def SERIAL_THREAD0(app):
     """
-    This function handles the communication with the selected serial device. It runs as a separate thread.
+    This thread handles the communication with serial device.
 
     PARAMETERS
     ----------
@@ -77,6 +78,7 @@ def appThread1(app):
     -------
     NOTHING
     """
+
     # creating an object of the serial.Serial class
     device = serial.Serial()
 
@@ -92,30 +94,44 @@ def appThread1(app):
         app.receive_buff.flush()
 
         # signal the successful initialization to the user interface
-        app.serialStartedCallback()
+        app.serial0StartedClbk()
 
+        temp = 0
+        byts = b''
         while True:
 
             # If there is data in the uart send buffer then keep sending the bytes to the serial buffer
-            if app.send_buff.filled:
-                device.write(app.send_buff.dequeue(1))
+            temp = app.send_buff.filled
+            if temp:
+                device.write(app.send_buff.dequeue(temp))
             
             # If there is data in the uart receive buffer then pass it into the receive buffer
-            if device.in_waiting:
-                app.receive_buff.enqueue(device.read(device.in_waiting))
+            temp = device.in_waiting
+            if temp:
+                byts = device.read(temp)
+
+                if app.doRecord():
+                    app.receive_buff.enqueue(byts)
+
+                if app.getDisplayOption() == 2:
+                    app.putOnDisplay( utils.convertToHexString(byts) )
+                    app.scroll()
+                else:
+                    app.putOnDisplay( byts.decode() )
+                    app.scroll()
             
-            if run_serial_thread == 0:
+            if run_serial_thread0 == 0:
                 raise SerialTermination("terminate thread")
 
     except Exception as e:
         # signal the termination to the user interface
-        app.serialTerminateCallback(str(e.__class__.__name__))
+        app.serial0StoppedClbk(str(e.__class__.__name__))
         device.close()
 
 run_serial_thread1 = 0
-def appThread3(app, delay):
+def SERIAL_THREAD1(app, delay):
     """
-    This function handles the communication with the selected serial device. It runs as a separate thread.
+    This thread handles the communication with the selected serial device. It runs as a separate thread.
     This thread is run when a record file is to be played.
 
     PARAMETERS
@@ -142,29 +158,47 @@ def appThread3(app, delay):
         device.open()
 
         # signal the successful initialization to the user interface
-        app.serialStartedCallback_Play()
+        app.serial1StartedClbk()
 
         # convert the delay to seconds
         delay=delay/1000
 
+        # time at which the thread was started
+        start_time = datetime.now()
+
+        temp = 0
+        byts = b''
+        interval = 0
         while True:
             
             # If there is data in the uart send buffer then keep sending the bytes to the serial buffer
-            if app.send_buff.filled:
+            temp = app.send_buff.filled
+            now = datetime.now()
+            if temp and (now-start_time).total_seconds() >= delay:
+                start_time = now
                 device.write(app.send_buff.dequeue(1))
             
             # If there is data in the uart receive buffer then pass it into the receive buffer
-            if device.in_waiting:
-                app.receive_buff.enqueue(device.read(device.in_waiting))
+            temp = device.in_waiting
+            if temp:
+                byts = device.read(temp)
+
+                if app.doRecord():
+                    app.receive_buff.enqueue(byts)
+
+                if app.getDisplayOption() == 2:
+                    app.putOnDisplay( utils.convertToHexString(byts) )
+                    app.scroll()
+                else:
+                    app.putOnDisplay( byts.decode() )
+                    app.scroll()
             
             if run_serial_thread1 == 0 or app.send_buff.filled ==0:
                 raise SerialTermination("terminate thread")
 
-            time.sleep(delay)
-
     except Exception as e:
         # signal the termination to the user interface
-        app.serialTerminateCallback_Play(str(e.__class__.__name__))
+        app.serial1StoppedClbk(str(e.__class__.__name__))
         device.close()
 
 # Custom Exception class
