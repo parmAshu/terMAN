@@ -1,5 +1,7 @@
 # TerMAN
-**TerMAN** is a minimal serial terminal for embedded systems developement.
+**TerMAN** is a minimal yet powerful serial terminal for embedded systems developement.
+
+![application window](/images/app.png)
 
 ### **Features**
 * Users can provide *'to be sent'* data as:
@@ -8,7 +10,7 @@
 * Display recieved bytes as :
     * ASCII decoded string
     * HEX values
-* *Packet Mode* : packets can be constructed that be sent again and again to the connected device
+* *Packet Mode* : packets can be constructed and sent repeatedly to the connected port
 * Incoming data can be recorded in :
     * raw form : Recieved data bytes are saved in a '.bin' file
     * csv form
